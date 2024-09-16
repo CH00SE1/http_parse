@@ -4,9 +4,11 @@ import (
 	"encoding/base64"
 	"fmt"
 	"golang.org/x/text/encoding/simplifiedchinese"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"reflect"
 	"strconv"
@@ -55,7 +57,7 @@ func CreateFile(text *string, path, fileName, fileType string) {
 		fmt.Println(err)
 	}
 
-	fmt.Println("字节:" + strconv.Itoa(writeString))
+	fmt.Printf("字节:%d - 文件名称:%s\n", writeString, fileName)
 
 }
 
@@ -94,14 +96,35 @@ func ConvertGBK2Str(gbkStr string) string {
 }
 
 // 图片保存
-func SaveFile(url string, i int) {
+func SavePhoto(url, fileName string, i int) {
 	log.Println("url : " + url)
 	response, _ := http.Get(url)
 	defer response.Body.Close()
 	bytes, _ := ioutil.ReadAll(response.Body)
-	path := "D:\\photo11\\" + strconv.Itoa(i) + ".jpg"
-	log.Println("path : " + path)
-	ioutil.WriteFile(path, bytes, 0755)
+	basePath := "C:\\Users\\Administrator\\Desktop\\photo_lilin\\"
+	pathExists(basePath)
+	name := basePath + strconv.Itoa(i+1) + "[学校照片]" + UrlDecode(fileName)
+	if !strings.Contains(name, ".jpg") {
+		name += ".jpg"
+	}
+	log.Println("path : " + name)
+	WriteFile(name, bytes, 0755)
+}
+
+// 写入文件
+func WriteFile(filename string, data []byte, perm os.FileMode) error {
+	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
+	if err != nil {
+		return err
+	}
+	n, err := f.Write(data)
+	if err == nil && n < len(data) {
+		err = io.ErrShortWrite
+	}
+	if err1 := f.Close(); err == nil {
+		err = err1
+	}
+	return err
 }
 
 // 解密base64str
@@ -115,3 +138,39 @@ func Base64ToStr(str string) {
 	}
 	CreateFile(text, "", "login", ".txt")
 }
+
+// Unicode加密
+func UrlEncode(str string) string {
+	return url.QueryEscape(str)
+}
+
+// Unicode解密
+func UrlDecode(str string) string {
+	res, err := url.QueryUnescape(str)
+	if err != nil {
+		return ""
+	}
+	return res
+}
+
+// 拿到正式m3u8视频下载地址
+//func IsM3u8Ture(url string) string {
+//	response, _ := http.Get(url)
+//	buf := new(bytes.Buffer)
+//	buf.ReadFrom(response.Body)
+//	newStr := buf.String()
+//	if buf == nil {
+//		return url
+//	}
+//	if strings.Contains(newStr, ".ts") {
+//		return url
+//	}
+//	index := strings.Index(url, "/20")
+//	url1 := url[:index]
+//	if strings.Contains(newStr, "/") {
+//		index2 := strings.Index(newStr, "/")
+//		openUrl := url1 + newStr[index2:]
+//		return openUrl
+//	}
+//	return url
+//}
